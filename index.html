@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b2a4a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="PrecisionTrack" />
+<title>PrecisionTrack · STX Time</title>
+<style>
+:root{
+  --navy:#0b2a4a; --navy2:#123a63; --gold:#c9a227; --bg:#f4f6f9; --card:#fff;
+  --line:#d5dde7; --text:#1b2430; --muted:#5b6b7c; --in:#1f7a4d; --out:#8a2f2f;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{padding:12px 12px calc(24px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+.top{background:var(--navy);color:#fff;border-radius:14px;padding:12px;display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.top img{height:44px;background:#fff;border-radius:6px;padding:3px 6px}
+.top h1{margin:0;font-size:18px;letter-spacing:.4px}
+.top small{opacity:.8;font-size:11px}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px}
+.tab{background:#e6edf5;color:var(--navy);border:0;border-radius:10px;padding:10px;font-weight:700;font-size:13px}
+.tab.active{background:var(--navy);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin:8px 0 4px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px;font-size:16px;background:#fff}
+textarea{min-height:64px}
+.clock{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{border:0;border-radius:12px;padding:14px 10px;font-weight:700;color:#fff;font-size:15px}
+.btn-in{background:var(--in)} .btn-out{background:var(--out)}
+.btn-navy{background:var(--navy);width:100%;margin-top:8px}
+.btn-gold{background:var(--gold);color:#1a1403;width:100%;margin-top:8px}
+.btn-ghost{background:#eef2f7;color:var(--navy);width:100%;margin-top:8px}
+.big{font-size:30px;font-weight:800;text-align:center}
+.pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700}
+.on{background:#e5f7ee;color:#167a48} .off{background:#eef2f7;color:var(--muted)}
+.entry{border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:8px;font-size:13px}
+.entry b{display:block}
+.hint{font-size:12px;color:var(--muted);line-height:1.4}
+.hidden{display:none}
+.modal{display:none;position:fixed;inset:0;background:rgba(11,42,74,.72);z-index:30;padding:16px;align-items:flex-end}
+.modal.open{display:flex}
+.sheet{background:#fff;width:100%;max-width:640px;margin:0 auto;border-radius:16px;padding:16px;max-height:88vh;overflow:auto}
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cat{background:#eef4fb;color:var(--navy);border:1px solid #c9d7e8;padding:12px 8px;font-size:13px}
+.cat.active{background:var(--navy);color:#fff}
+.check{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px}
+.check input{width:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--navy);color:#fff;text-align:left;padding:6px}
+td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
+.totbar{display:flex;justify-content:space-between;background:#eef4fb;border-radius:10px;padding:10px;font-weight:700}
+.rpt{background:#fff}
+.rpt h2{color:var(--navy);font-size:15px;letter-spacing:.6px;text-align:center;margin:0 0 4px}
+.rpt .meta{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;font-size:11px;margin:8px 0}
+.rpt .meta span{border:1px solid var(--line);padding:4px 8px;border-radius:6px}
+.bar{height:10px;background:#e6edf5;border-radius:6px;overflow:hidden;margin:4px 0 8px}
+.bar>i{display:block;height:100%;background:var(--navy2)}
+.rowline{display:flex;justify-content:space-between;font-size:12px}
+</style>
+</head>
+<body>
+<div class="top">
+  <img src="logo.jpg" alt="STX">
+  <div>
+    <h1>PRECISIONTRACK</h1>
+    <small>STX Corporation · Weekly Time</small>
+  </div>
+</div>
+<div class="tabs">
+  <button class="tab active" data-tab="today" onclick="showTab('today')">Today</button>
+  <button class="tab" data-tab="week" onclick="showTab('week')">Week</button>
+  <button class="tab" data-tab="report" onclick="showTab('report')">Report</button>
+</div>
+<section id="tab-today">
+  <div class="card" style="text-align:center">
+    <div id="liveClock" class="big">--:--</div>
+    <div id="statusPill" class="pill off">No activity running</div>
+    <div id="elapsed" class="hint" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
+    <div class="clock">
+      <button class="btn-in" onclick="startNewActivity()">Clock In / Next</button>
+      <button class="btn-out" onclick="clockOut()">Clock Out</button>
+    </div>
+    <p class="hint" style="margin:8px 0 0">Already on the clock? Hit <b>Clock In / Next</b> again. It closes the current activity and starts a new one. No need to clock out first.</p>
+  </div>
+  <div class="card">
+    <div class="label">Today’s activities</div>
+    <div id="todayList"></div>
+  </div>
+</section>
+<section id="tab-week" class="hidden">
+  <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+    <button class="btn-ghost" style="width:auto;margin:0" onclick="shiftWeek(-1)">‹</button>
+    <b id="weekLabel"></b>
+    <button class="btn-ghost" style="width:auto;margin:0" onclick="shiftWeek(1)">›</button>
+  </div>
+  <div class="card totbar"><span>Total</span><span id="tAll">0.00 hrs</span></div>
+  <div class="card" id="catTotals"></div>
+  <div class="card">
+    <div class="label">All entries this week</div>
+    <div id="weekList"></div>
+  </div>
+</section>
+<section id="tab-report" class="hidden">
+  <div class="card">
+    <div class="label">Notes / comments for management</div>
+    <textarea id="mgmtNotes" placeholder="Productive week at site..."></textarea>
+    <button class="btn-navy" onclick="saveMgmt()">Save notes</button>
+    <button class="btn-gold" onclick="buildReport()">Build PrecisionTrack report</button>
+    <button class="btn-ghost" onclick="copyReport()">Copy report</button>
+    <button class="btn-ghost" onclick="printReport()">Print / Save PDF</button>
+    <button class="btn-ghost" onclick="loadSample()">Load sample week</button>
+  </div>
+  <div class="card rpt" id="reportBox">
+    <p class="hint">Build the report to see the PrecisionTrack summary.</p>
+  </div>
+</section>
+<div id="catModal" class="modal">
+  <div class="sheet">
+    <h3 style="margin:0 0 6px;color:var(--navy)">New activity</h3>
+    <p class="hint">Pick the category and name the task. Status and key accomplishment are asked when you clock out or switch tasks.</p>
+    <div class="label">Category</div>
+    <div id="catButtons" class="cats"></div>
+    <div class="label">Description / Task</div>
+    <input id="taskIn" placeholder="JHA, ArcGIS training, dinner with customer..." />
+    <div class="label">Notes (optional)</div>
+    <textarea id="notesIn" placeholder="What you’re about to work on..."></textarea>
+    <button class="btn-gold" onclick="confirmStart()">Start this activity</button>
+    <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+<div id="outModal" class="modal">
+  <div class="sheet">
+    <h3 style="margin:0 0 6px;color:var(--navy)">Closing activity</h3>
+    <p class="hint" id="outTaskLabel">Wrap this one up.</p>
+    <div class="label">Status</div>
+    <select id="statusOut">
+      <option>Completed</option>
+      <option>In Progress</option>
+      <option>Incomplete</option>
+    </select>
+    <label class="check"><input type="checkbox" id="keyOut"> Key accomplishment for management?</label>
+    <div class="label">Add / update notes</div>
+    <textarea id="notesOut" placeholder="What got done, who you met, leftover work..."></textarea>
+    <button class="btn-gold" onclick="confirmClose()">Save and close this activity</button>
+    <button class="btn-ghost" onclick="closeOutModal()">Cancel</button>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
