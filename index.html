@@ -8,15 +8,12 @@
 <meta name="apple-mobile-web-app-title" content="PrecisionTrack" />
 <title>PrecisionTrack · STX Time</title>
 <style>
-:root{
-  --navy:#0b2a4a; --navy2:#123a63; --gold:#c9a227; --bg:#f4f6f9; --card:#fff;
-  --line:#d5dde7; --text:#1b2430; --muted:#5b6b7c; --in:#1f7a4d; --out:#8a2f2f;
-}
+:root{--navy:#0b2a4a;--navy2:#123a63;--gold:#c9a227;--bg:#f4f6f9;--card:#fff;--line:#d5dde7;--text:#1b2430;--muted:#5b6b7c;--in:#1f7a4d;--out:#8a2f2f}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 body{padding:12px 12px calc(24px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
 .top{background:var(--navy);color:#fff;border-radius:14px;padding:12px;display:flex;gap:10px;align-items:center;margin-bottom:12px}
-.top img{height:44px;background:#fff;border-radius:6px;padding:3px 6px}
+.badge{background:#fff;color:#0b2a4a;font-weight:800;padding:8px 10px;border-radius:6px;letter-spacing:.5px}
 .top h1{margin:0;font-size:18px;letter-spacing:.4px}
 .top small{opacity:.8;font-size:11px}
 .tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px}
@@ -51,8 +48,7 @@ table{width:100%;border-collapse:collapse;font-size:12px}
 th{background:var(--navy);color:#fff;text-align:left;padding:6px}
 td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
 .totbar{display:flex;justify-content:space-between;background:#eef4fb;border-radius:10px;padding:10px;font-weight:700}
-.rpt{background:#fff}
-.rpt h2{color:var(--navy);font-size:15px;letter-spacing:.6px;text-align:center;margin:0 0 4px}
+.rpt h2{color:var(--navy);font-size:15px;text-align:center;margin:0 0 4px}
 .rpt .meta{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;font-size:11px;margin:8px 0}
 .rpt .meta span{border:1px solid var(--line);padding:4px 8px;border-radius:6px}
 .bar{height:10px;background:#e6edf5;border-radius:6px;overflow:hidden;margin:4px 0 8px}
@@ -62,7 +58,7 @@ td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
 </head>
 <body>
 <div class="top">
-  <img src="logo.jpg" alt="STX">
+  <div class="badge">STX</div>
   <div>
     <h1>PRECISIONTRACK</h1>
     <small>STX Corporation · Weekly Time</small>
@@ -84,18 +80,18 @@ td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
       <button class="btn-in" onclick="startNewActivity()">Clock In / Next</button>
       <button class="btn-out" onclick="clockOut()">Clock Out</button>
     </div>
-    <p class="hint" style="margin:8px 0 0">Already on the clock? Hit <b>Clock In / Next</b> again. It closes the current activity and starts a new one. No need to clock out first.</p>
+    <p class="hint" style="margin:8px 0 0">Already on the clock? Hit <b>Clock In / Next</b> again. It closes the current activity and starts a new one.</p>
   </div>
   <div class="card">
-    <div class="label">Today’s activities</div>
+    <div class="label">Today's activities</div>
     <div id="todayList"></div>
   </div>
 </section>
 <section id="tab-week" class="hidden">
   <div class="card" style="display:flex;justify-content:space-between;align-items:center">
-    <button class="btn-ghost" style="width:auto;margin:0" onclick="shiftWeek(-1)">‹</button>
+    <button class="btn-ghost" style="width:auto;margin:0" onclick="shiftWeek(-1)"><</button>
     <b id="weekLabel"></b>
-    <button class="btn-ghost" style="width:auto;margin:0" onclick="shiftWeek(1)">›</button>
+    <button class="btn-ghost" style="width:auto;margin:0" onclick="shiftWeek(1)">></button>
   </div>
   <div class="card totbar"><span>Total</span><span id="tAll">0.00 hrs</span></div>
   <div class="card" id="catTotals"></div>
@@ -127,7 +123,7 @@ td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
     <div class="label">Description / Task</div>
     <input id="taskIn" placeholder="JHA, ArcGIS training, dinner with customer..." />
     <div class="label">Notes (optional)</div>
-    <textarea id="notesIn" placeholder="What you’re about to work on..."></textarea>
+    <textarea id="notesIn" placeholder="What you are about to work on..."></textarea>
     <button class="btn-gold" onclick="confirmStart()">Start this activity</button>
     <button class="btn-ghost" onclick="closeModal()">Cancel</button>
   </div>
@@ -149,6 +145,6 @@ td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
     <button class="btn-ghost" onclick="closeOutModal()">Cancel</button>
   </div>
 </div>
-<script src="app.js"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
