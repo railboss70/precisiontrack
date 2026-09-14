@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="PrecisionTrack" />
 <link rel="apple-touch-icon" href="icon-180.png" />
-<link rel="icon" href="icon-180.png" />
 <title>PrecisionTrack · STX Time</title>
 <style>
 :root{--navy:#0b2a4a;--navy2:#123a63;--gold:#c9a227;--bg:#f4f6f9;--card:#fff;--line:#d5dde7;--text:#1b2430;--muted:#5b6b7c;--in:#1f7a4d;--out:#8a2f2f}
@@ -15,7 +14,7 @@
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 body{padding:12px 12px calc(24px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
 .top{background:var(--navy);color:#fff;border-radius:14px;padding:12px;display:flex;gap:10px;align-items:center;margin-bottom:12px}
-.badge{background:#fff;color:#0b2a4a;font-weight:800;padding:8px 10px;border-radius:6px;letter-spacing:.5px}
+.top img{height:44px;max-width:140px;object-fit:contain}
 .top h1{margin:0;font-size:18px;letter-spacing:.4px}
 .top small{opacity:.8;font-size:11px}
 .tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px}
@@ -56,11 +55,13 @@ td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
 .bar{height:10px;background:#e6edf5;border-radius:6px;overflow:hidden;margin:4px 0 8px}
 .bar>i{display:block;height:100%;background:var(--navy2)}
 .rowline{display:flex;justify-content:space-between;font-size:12px}
+.mini{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.mini button{width:auto;margin:0;padding:8px 10px;font-size:12px}
 </style>
 </head>
 <body>
 <div class="top">
-  <div class="badge">STX</div>
+  <img src="logo.webp" alt="STX">
   <div>
     <h1>PRECISIONTRACK</h1>
     <small>STX Corporation · Weekly Time</small>
@@ -82,7 +83,8 @@ td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
       <button class="btn-in" onclick="startNewActivity()">Clock In / Next</button>
       <button class="btn-out" onclick="clockOut()">Clock Out</button>
     </div>
-    <p class="hint" style="margin:8px 0 0">Already on the clock? Hit <b>Clock In / Next</b> again. It closes the current activity and starts a new one.</p>
+    <button class="btn-navy" onclick="openManual()">Add missed punch</button>
+    <p class="hint" style="margin:8px 0 0">Forgot a day or left one running? Use <b>Add missed punch</b> or tap <b>Edit</b> on any activity.</p>
   </div>
   <div class="card">
     <div class="label">Today's activities</div>
@@ -98,6 +100,7 @@ td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
   <div class="card totbar"><span>Total</span><span id="tAll">0.00 hrs</span></div>
   <div class="card" id="catTotals"></div>
   <div class="card">
+    <button class="btn-navy" style="margin-top:0" onclick="openManual()">Add missed punch</button>
     <div class="label">All entries this week</div>
     <div id="weekList"></div>
   </div>
@@ -119,13 +122,13 @@ td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
 <div id="catModal" class="modal">
   <div class="sheet">
     <h3 style="margin:0 0 6px;color:var(--navy)">New activity</h3>
-    <p class="hint">Pick the category and name the task. Status and key accomplishment are asked when you clock out or switch tasks.</p>
+    <p class="hint">Pick the category and name the task. Status and key accomplishment are asked when you clock out.</p>
     <div class="label">Category</div>
     <div id="catButtons" class="cats"></div>
     <div class="label">Description / Task</div>
     <input id="taskIn" placeholder="JHA, ArcGIS training, dinner with customer..." />
     <div class="label">Notes (optional)</div>
-    <textarea id="notesIn" placeholder="What you are about to work on..."></textarea>
+    <textarea id="notesIn"></textarea>
     <button class="btn-gold" onclick="confirmStart()">Start this activity</button>
     <button class="btn-ghost" onclick="closeModal()">Cancel</button>
   </div>
@@ -142,11 +145,40 @@ td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top}
     </select>
     <label class="check"><input type="checkbox" id="keyOut"> Key accomplishment for management?</label>
     <div class="label">Add / update notes</div>
-    <textarea id="notesOut" placeholder="What got done, who you met, leftover work..."></textarea>
+    <textarea id="notesOut"></textarea>
     <button class="btn-gold" onclick="confirmClose()">Save and close this activity</button>
     <button class="btn-ghost" onclick="closeOutModal()">Cancel</button>
   </div>
 </div>
-<script src="app.js?v=4"></script>
+<div id="editModal" class="modal">
+  <div class="sheet">
+    <h3 style="margin:0 0 6px;color:var(--navy)" id="editTitle">Edit punch</h3>
+    <p class="hint">Fix a missed clock-in, a forgotten clock-out, or type hours if you only remember the total.</p>
+    <div class="label">Date</div>
+    <input type="date" id="editDate" />
+    <div class="label">Category</div>
+    <select id="editCat"></select>
+    <div class="label">Description / Task</div>
+    <input id="editTask" />
+    <div class="label">Clock in</div>
+    <input type="datetime-local" id="editIn" />
+    <div class="label">Clock out (leave blank if still running)</div>
+    <input type="datetime-local" id="editOut" />
+    <div class="label">Or enter hours instead (overrides clock times)</div>
+    <input id="editHrs" type="number" step="0.25" min="0" placeholder="Leave blank to use clock in / out" />
+    <div class="label">Status</div>
+    <select id="editStatus">
+      <option>Completed</option>
+      <option>In Progress</option>
+      <option>Incomplete</option>
+    </select>
+    <label class="check"><input type="checkbox" id="editKey"> Key accomplishment</label>
+    <div class="label">Notes</div>
+    <textarea id="editNotes"></textarea>
+    <button class="btn-gold" onclick="saveEdit()">Save punch</button>
+    <button class="btn-ghost" onclick="closeEdit()">Cancel</button>
+  </div>
+</div>
+<script src="app.js?v=5"></script>
 </body>
 </html>
