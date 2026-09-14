@@ -42,11 +42,38 @@ if(!state.entries) state.entries=[];
 if(state.mgmt==null) state.mgmt="";
 let pendingCat="";
 let pendingNext=false;
-function openEntry(){return state.entries.find(function(e){return e.in && !e.out})}
+let editingId=null;
+function openEntry(){return state.entries.find(function(e){return e.in && !e.out && (e.manualHrs==="" || e.manualHrs==null)})}
 function weekDates(){return Array.from({length:7},function(_,i){return addDays(state.weekStart,i)})}
 function weekEntries(){
   const set=new Set(weekDates());
   return state.entries.filter(function(e){return set.has(e.date)}).sort(function(a,b){return (a.in||"").localeCompare(b.in||"")});
+}
+function part(iso, type){
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(iso));
+  const hit=parts.find(function(p){return p.type===type});
+  return hit?hit.value:"";
+}
+function isoToLocal(iso){
+  if(!iso) return "";
+  return part(iso,"year")+"-"+part(iso,"month")+"-"+part(iso,"day")+"T"+part(iso,"hour")+":"+part(iso,"minute");
+}
+function localToIso(s){
+  if(!s) return null;
+  const bits=s.split("T");
+  if(bits.length<2) return null;
+  const d=bits[0].split("-").map(Number);
+  const t=bits[1].split(":").map(Number);
+  return new Date(d[0],d[1]-1,d[2],t[0]||0,t[1]||0,0).toISOString();
+}
+function fillCatSelect(sel, current){
+  sel.innerHTML="";
+  CATS.forEach(function(c){
+    const o=document.createElement("option");
+    o.value=c; o.textContent=c;
+    if(c===current) o.selected=true;
+    sel.appendChild(o);
+  });
 }
 function openCatModal(){
   pendingCat="";
@@ -107,6 +134,59 @@ function confirmClose(){
   render();
   if(pendingNext){ pendingNext=false; openCatModal(); }
 }
+function openManual(){
+  editingId=null;
+  document.getElementById("editTitle").textContent="Add missed punch";
+  document.getElementById("editDate").value=ymd(now());
+  fillCatSelect(document.getElementById("editCat"), CATS[0]);
+  document.getElementById("editTask").value="";
+  document.getElementById("editIn").value="";
+  document.getElementById("editOut").value="";
+  document.getElementById("editHrs").value="";
+  document.getElementById("editStatus").value="Completed";
+  document.getElementById("editKey").checked=false;
+  document.getElementById("editNotes").value="";
+  document.getElementById("editModal").classList.add("open");
+}
+function openEdit(id){
+  const e=state.entries.find(function(x){return x.id===id});
+  if(!e) return;
+  editingId=id;
+  document.getElementById("editTitle").textContent="Edit punch";
+  document.getElementById("editDate").value=e.date||ymd(now());
+  fillCatSelect(document.getElementById("editCat"), e.category);
+  document.getElementById("editTask").value=e.task||"";
+  document.getElementById("editIn").value=isoToLocal(e.in);
+  document.getElementById("editOut").value=isoToLocal(e.out);
+  document.getElementById("editHrs").value=(e.manualHrs!=="" && e.manualHrs!=null)?e.manualHrs:"";
+  document.getElementById("editStatus").value=e.status||"Completed";
+  document.getElementById("editKey").checked=!!e.key;
+  document.getElementById("editNotes").value=e.notes||"";
+  document.getElementById("editModal").classList.add("open");
+}
+function closeEdit(){
+  document.getElementById("editModal").classList.remove("open");
+  editingId=null;
+}
+function saveEdit(){
+  const date=document.getElementById("editDate").value;
+  const category=document.getElementById("editCat").value;
+  const task=document.getElementById("editTask").value.trim();
+  const inIso=localToIso(document.getElementById("editIn").value);
+  const outIso=localToIso(document.getElementById("editOut").value);
+  const hrsRaw=document.getElementById("editHrs").value.trim();
+  const status=document.getElementById("editStatus").value;
+  const key=document.getElementById("editKey").checked;
+  const notes=document.getElementById("editNotes").value.trim();
+  if(!date){alert("Pick a date.");return}
+  if(!task){alert("Enter a description / task.");return}
+  if(!hrsRaw && !inIso){alert("Enter a clock-in time or hours.");return}
+  if(inIso && outIso && new Date(outIso)<=new Date(inIso)){alert("Clock out must be after clock in.");return}
+  const rec={id: editingId || uid(), date: date, in: inIso, out: outIso, category: category, task: task, notes: notes, status: status, key: key, manualHrs: hrsRaw===""?"":String(Number(hrsRaw)||0)};
+  if(editingId){state.entries=state.entries.map(function(e){return e.id===editingId?rec:e});}
+  else {state.entries.push(rec);}
+  save(); closeEdit(); render();
+}
 function shiftWeek(n){
   const d=parseYmd(state.weekStart);
   d.setDate(d.getDate()+n*7);
@@ -120,11 +200,7 @@ function showTab(name){
   });
   render();
 }
-function saveMgmt(){
-  state.mgmt=document.getElementById("mgmtNotes").value;
-  save();
-  alert("Saved.");
-}
+function saveMgmt(){ state.mgmt=document.getElementById("mgmtNotes").value; save(); alert("Saved."); }
 function deleteEntry(id){
   if(!confirm("Delete this activity?")) return;
   state.entries=state.entries.filter(function(e){return e.id!==id});
@@ -163,14 +239,13 @@ function esc(s){
   s=s.split("&").join("&"+"amp;");
   s=s.split("<").join("&"+"lt;");
   s=s.split(">").join("&"+"gt;");
-  s=s.split('"').join("&"+"quot;");
-  s=s.split("'").join("'" );
   return s;
 }
 function entryCard(e){
   const h=entryHours(e);
-  const run=!e.out;
-  return '<div class="entry"><b>'+esc(e.category)+'</b> '+esc(e.task)+' - '+h.toFixed(2)+' hrs '+(run?"(running)":"")+'<div class="hint">'+fmtTime(e.in)+' - '+(e.out?fmtTime(e.out):"now")+' - '+esc(e.status)+(e.key?" - KEY":"")+'</div>'+(e.notes?'<div class="hint">'+esc(e.notes)+'</div>':'')+'<div class="clock" style="margin-top:6px"><button class="btn-ghost" style="margin:0;padding:8px" onclick="toggleKey(\''+e.id+'\')">'+(e.key?"Unmark key":"Mark key")+'</button><button class="btn-ghost" style="margin:0;padding:8px" onclick="deleteEntry(\''+e.id+'\')">Delete</button></div></div>';
+  const run=!e.out && (e.manualHrs==="" || e.manualHrs==null);
+  const tag=e.manualHrs!=="" && e.manualHrs!=null?" (manual hrs)":(run?" (running)":"");
+  return '<div class="entry"><b>'+esc(e.category)+'</b> '+esc(e.task)+' - '+h.toFixed(2)+' hrs'+tag+'<div class="hint">'+fmtTime(e.in)+' - '+(e.out?fmtTime(e.out):(run?"now":"-"))+' - '+esc(e.status)+(e.key?" - KEY":"")+'</div>'+(e.notes?'<div class="hint">'+esc(e.notes)+'</div>':'')+'<div class="mini"><button class="btn-ghost" onclick="openEdit(\''+e.id+'\')">Edit</button><button class="btn-ghost" onclick="toggleKey(\''+e.id+'\')">'+(e.key?"Unmark key":"Mark key")+'</button><button class="btn-ghost" onclick="deleteEntry(\''+e.id+'\')">Delete</button></div></div>';
 }
 function buildReport(){
   const start=state.weekStart, end=addDays(start,6);
@@ -225,10 +300,7 @@ function buildReport(){
     '<p class="hint" style="text-align:center">PrecisionTrack - STX Corporation - Confidential</p>';
   return "ok";
 }
-async function copyReport(){
-  buildReport();
-  alert("Report built. Use Print / Save PDF.");
-}
+async function copyReport(){ buildReport(); alert("Report built. Use Print / Save PDF."); }
 function printReport(){
   buildReport();
   const w=window.open("","_blank");
